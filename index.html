@@ -339,7 +339,7 @@ const OfflineStore = {
 
 // ⚠️  IMPORTANTE: reemplazá esta URL con la URL de tu Apps Script Web App
 // La encontrás en: Desplegar → Administrar implementaciones → URL de la app
-const SCRIPT_URL = "https://script.google.com/macros/s/TU_ID/exec";
+const SCRIPT_URL = window.QC_SCRIPT_URL || "";
 
 function gscall(funcName, ...args) {
   return new Promise((resolve, reject) => {
@@ -827,7 +827,9 @@ function App() {
 
   // Login: online valida con Apps Script, offline acepta cualquier 4 dígitos
   const onLogin = async (legajo) => {
-    if (conn === "offline") {
+    // Chequeo inmediato: si el navegador sabe que no hay red, entrar sin validar
+    if (conn === "offline" || !navigator.onLine) {
+      setConn("offline");
       setForm(f => ({...f, legajo, operario: `Operario ${legajo}`}));
       setPaso(1);
       return true;
@@ -842,13 +844,11 @@ function App() {
       return false;
     } catch (e) {
       console.error("Error validando legajo:", e);
-      // Si falla la red, permitir acceso de emergencia
-      if (!navigator.onLine) {
-        setForm(f => ({...f, legajo, operario: `Operario ${legajo}`}));
-        setPaso(1);
-        return true;
-      }
-      return false;
+      // Si el llamado falla por falta de red, entrar en modo offline
+      setConn("offline");
+      setForm(f => ({...f, legajo, operario: `Operario ${legajo}`}));
+      setPaso(1);
+      return true;
     }
   };
 
