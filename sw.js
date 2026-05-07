@@ -1,6 +1,6 @@
 // sw.js — Service Worker para QualityCast offline
 // ⚠️  Si cambiás algo en index.html, incrementá el número de versión
-const CACHE_NAME = "qc-v3";
+const CACHE_NAME = "qc-v2";
 
 // Todos los recursos que la app necesita para funcionar sin internet
 const ASSETS = [
@@ -42,28 +42,36 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
-// Fetch: cache-first para todo (la app funciona sin red después de la primera visita)
+// Fetch: network-first para index.html (siempre toma la versión más nueva)
+//         cache-first para todo lo demás (React, íconos, etc.)
 self.addEventListener("fetch", (e) => {
   // No interceptar requests a Apps Script
   if (e.request.url.includes("script.google.com")) return;
 
-  e.respondWith(
-    caches.match(e.request).then((cached) => {
-      if (cached) return cached;
+  const isHTML = e.request.url.endsWith("/") || e.request.url.endsWith(".html");
 
-      // No está en cache → buscar en red y guardar para la próxima
-      return fetch(e.request).then((response) => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
-        }
+  if (isHTML) {
+    // index.html: intentar red primero, cache como fallback offline
+    e.respondWith(
+      fetch(e.request).then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
         return response;
-      }).catch(() => {
-        // Sin red y sin cache: devolver index para navegación HTML
-        if (e.request.headers.get("accept")?.includes("text/html")) {
-          return caches.match("/index.html");
-        }
-      });
-    })
-  );
+      }).catch(() => caches.match(e.request))
+    );
+  } else {
+    // Resto (React CDN, íconos, manifest): cache-first
+    e.respondWith(
+      caches.match(e.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(e.request).then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+  }
 });
