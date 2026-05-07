@@ -1,6 +1,6 @@
 // sw.js — Service Worker para QualityCast offline
 // ⚠️  Si cambiás algo en index.html, incrementá el número de versión
-const CACHE_NAME = "qc-v2";
+const CACHE_NAME = "qc-v3";
 
 // Todos los recursos que la app necesita para funcionar sin internet
 const ASSETS = [
