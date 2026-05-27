@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QualityCast · Dashboard</title>
+<style>
+:root {
+  --bg: #0b0f14;
+  --surface: #121821;
+  --surface-2: #18202c;
+  --surface-3: #1f2937;
+  --border: #243243;
+  --border-strong: #2f4257;
+  --text: #e5eaf0;
+  --text-dim: #98a4b3;
+  --text-muted: #5b6a7c;
+  --accent: #22d3ee;
+  --accent-soft: rgba(34,211,238,0.10);
+  --accent-border: rgba(34,211,238,0.30);
+  --ok: #34d399;
+  --ok-soft: rgba(52,211,153,0.12);
+  --ok-border: rgba(52,211,153,0.30);
+  --nok: #f87171;
+  --nok-soft: rgba(248,113,113,0.12);
+  --nok-border: rgba(248,113,113,0.30);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251,191,36,0.10);
+  --warn-border: rgba(251,191,36,0.30);
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 24px; height: 56px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: var(--accent); color: #06111a;
+  display: grid; place-items: center;
+  font-family: var(--mono); font-size: 13px; font-weight: 700;
+}
+.brand-name { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+.brand-sep { color: var(--text-muted); margin: 0 2px; }
+.brand-sub { font-size: 13px; color: var(--text-dim); font-family: var(--mono); }
+.tb-spacer { flex: 1; }
+.tb-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; font-size: 11px; font-family: var(--mono);
+  color: var(--text-dim);
+}
+.tb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.tb-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+.tb-dot.error { background: var(--nok); }
+.refresh-btn {
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-dim); border-radius: 8px;
+  padding: 6px 12px; font-size: 12px; font-family: var(--mono);
+  cursor: pointer; transition: all 0.1s; display: flex; align-items: center; gap: 6px;
+}
+.refresh-btn:hover { background: var(--surface-3); color: var(--text); border-color: var(--border-strong); }
+.refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.refresh-icon { font-size: 14px; display: inline-block; transition: transform 0.4s; }
+.refresh-icon.spinning { animation: spin 0.6s linear infinite; }
+
+/* ── LAYOUT ── */
+.page { padding: 20px 24px 40px; max-width: 1400px; margin: 0 auto; }
+
+/* ── ALERTAS PANEL ── */
+.alerts-bar {
+  background: var(--surface); border: 1px solid var(--nok-border);
+  border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;
+  display: none;
+}
+.alerts-bar.visible { display: block; }
+.alerts-bar-hd {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  font-size: 11px; font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--nok); font-weight: 600;
+}
+.alerts-list { display: flex; flex-direction: column; gap: 6px; }
+.alert-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--nok-soft); border: 1px solid var(--nok-border);
+  border-radius: 8px; padding: 8px 12px; font-size: 12px;
+}
+.alert-item.warn {
+  background: var(--warn-soft); border-color: var(--warn-border);
+}
+.alert-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--nok); margin-top: 4px; flex-shrink: 0; }
+.alert-dot.warn { background: var(--warn); }
+.alert-text { color: var(--text); line-height: 1.4; }
+.alert-text strong { color: var(--nok); font-weight: 600; }
+.alert-text.warn strong { color: var(--warn); }
+.alert-meta { margin-top: 2px; font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
+
+/* ── STATS ROW ── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+}
+.stat-label {
+  font-size: 10px; font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--text-muted); font-weight: 500; margin-bottom: 6px;
+}
+.stat-value {
+  font-family: var(--mono); font-size: 28px; font-weight: 700; line-height: 1;
+}
+.stat-value.ok { color: var(--ok); }
+.stat-value.nok { color: var(--nok); }
+.stat-value.warn { color: var(--warn); }
+.stat-value.accent { color: var(--accent); }
+.stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: var(--mono); }
+
+/* ── SECCIÓN INYECTORAS ── */
+.section-hd {
+  font-size: 10px; font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 0.10em; color: var(--text-muted); font-weight: 600;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.section-hd::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+.iny-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px; margin-bottom: 28px;
+}
+
+.iny-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+.iny-card:hover { border-color: var(--border-strong); }
+.iny-card.ok { border-color: rgba(52,211,153,0.25); }
+.iny-card.nok { border-color: rgba(248,113,113,0.40); }
+.iny-card.warn { border-color: rgba(251,191,36,0.35); }
+.iny-card.no-data { opacity: 0.5; }
+
+.iny-card-hd {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.iny-id {
+  font-family: var(--mono); font-size: 18px; font-weight: 700;
+  letter-spacing: 0.02em; color: var(--accent);
+}
+.iny-tipo {
+  font-size: 10px; font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 3px 8px; border-radius: 999px;
+  background: var(--surface-3); color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.iny-spacer { flex: 1; }
+.iny-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-family: var(--mono); font-weight: 600;
+  padding: 4px 10px; border-radius: 999px;
+}
+.iny-status.ok { color: var(--ok); background: var(--ok-soft); border: 1px solid var(--ok-border); }
+.iny-status.nok { color: var(--nok); background: var(--nok-soft); border: 1px solid var(--nok-border); }
+.iny-status.warn { color: var(--warn); background: var(--warn-soft); border: 1px solid var(--warn-border); }
+.iny-status.no-data { color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); }
+.iny-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.iny-card-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.iny-info-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.iny-info-item {}
+.iny-info-label {
+  font-size: 10px; font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 2px;
+}
+.iny-info-value {
+  font-size: 13px; font-family: var(--mono); font-weight: 600; color: var(--text);
+}
+.iny-info-value.dim { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+
+/* Bocas mini */
+.bocas-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.boca-chip {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 7px;
+  font-family: var(--mono); font-size: 11px;
+}
+.boca-chip.alert { border-color: var(--nok-border); background: var(--nok-soft); }
+.boca-chip.warn { border-color: var(--warn-border); background: var(--warn-soft); }
+.boca-num { color: var(--text-muted); }
+.boca-val { color: var(--text); font-weight: 600; }
+.boca-val.alert { color: var(--nok); }
+.boca-val.warn { color: var(--warn); }
+.boca-nok-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--nok); flex-shrink: 0; }
+
+/* Temperaturas mini */
+.temps-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.temp-chip {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 8px;
+  font-family: var(--mono); font-size: 11px;
+  display: flex; align-items: center; gap: 4px;
+}
+.temp-chip.alert { border-color: var(--nok-border); background: var(--nok-soft); }
+.temp-label { color: var(--text-muted); }
+.temp-val { font-weight: 600; color: var(--text); }
+.temp-val.alert { color: var(--nok); }
+
+/* Controles OK/NOK badges */
+.checks-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.check-badge {
+  font-size: 10px; font-family: var(--mono); font-weight: 600;
+  padding: 3px 8px; border-radius: 999px; letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+.check-badge.ok { color: var(--ok); background: var(--ok-soft); border-color: var(--ok-border); }
+.check-badge.nok { color: var(--nok); background: var(--nok-soft); border-color: var(--nok-border); }
+.check-badge.na { color: var(--text-muted); background: var(--surface-2); border-color: var(--border); }
+
+/* Timestamp */
+.iny-timestamp {
+  font-size: 10px; color: var(--text-muted); font-family: var(--mono);
+  display: flex; align-items: center; gap: 5px;
+  padding-top: 8px; border-top: 1px solid var(--border);
+}
+
+/* No data */
+.no-data-msg {
+  text-align: center; padding: 24px 0;
+  color: var(--text-muted); font-size: 12px; font-family: var(--mono);
+}
+
+/* ── MODAL DETALLE ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 100; display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: 16px; width: 100%; max-width: 700px; max-height: 90vh;
+  overflow-y: auto; padding: 24px;
+  animation: fadeUp 0.2s ease;
+}
+.modal-hd {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+}
+.modal-title { font-size: 18px; font-weight: 600; }
+.modal-sub { font-size: 12px; color: var(--text-dim); font-family: var(--mono); margin-top: 2px; }
+.modal-close {
+  margin-left: auto; background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text); width: 32px; height: 32px; border-radius: 8px;
+  cursor: pointer; font-size: 16px; display: grid; place-items: center;
+}
+.modal-close:hover { background: var(--surface-3); }
+
+.modal-section { margin-bottom: 20px; }
+.modal-section-title {
+  font-size: 10px; font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--text-muted); font-weight: 600;
+  margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+
+.detail-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.detail-item {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+}
+.detail-item.alert { border-color: var(--nok-border); background: var(--nok-soft); }
+.detail-item.warn-item { border-color: var(--warn-border); background: var(--warn-soft); }
+.detail-label {
+  font-size: 10px; font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 4px;
+}
+.detail-value {
+  font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--text);
+}
+.detail-value.alert { color: var(--nok); }
+.detail-value.ok { color: var(--ok); }
+.detail-value.warn { color: var(--warn); }
+.detail-range {
+  font-size: 10px; color: var(--text-muted); font-family: var(--mono); margin-top: 2px;
+}
+.detail-range.alert { color: var(--nok); }
+
+/* ── HISTORIAL ── */
+.history-section { margin-top: 28px; }
+.history-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px; font-family: var(--mono);
+}
+.history-table th {
+  text-align: left; padding: 8px 10px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-muted); font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.history-table td {
+  padding: 8px 10px; border-bottom: 1px solid var(--border);
+  color: var(--text-dim); vertical-align: top;
+}
+.history-table tr:last-child td { border-bottom: none; }
+.history-table tr:hover td { background: var(--surface-2); color: var(--text); }
+.h-ok { color: var(--ok); font-weight: 600; }
+.h-nok { color: var(--nok); font-weight: 600; }
+
+/* ── LOADING ── */
+.loading-overlay {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 300px; gap: 14px;
+}
+.loader {
+  width: 36px; height: 36px; border: 2px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.loading-text { font-size: 13px; color: var(--text-muted); font-family: var(--mono); }
+
+/* ── ANIMATIONS ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── CHARTS ── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px; margin-bottom: 28px;
+}
+.chart-card-full { grid-column: 1 / -1; }
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px 20px;
+}
+.chart-card-hd { margin-bottom: 16px; }
+.chart-card-title {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  margin-bottom: 3px;
+}
+.chart-card-sub {
+  font-size: 11px; color: var(--text-muted); font-family: var(--mono);
+}
+.chart-filter {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+}
+.filter-btn {
+  font-size: 11px; font-family: var(--mono); font-weight: 600;
+  padding: 3px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text-dim); transition: all 0.1s;
+}
+.filter-btn:hover { border-color: var(--border-strong); color: var(--text); }
+.filter-btn.active { border-color: var(--accent-border); background: var(--accent-soft); color: var(--accent); }
+
+/* Interval bars */
+.interval-bars {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.interval-row {
+  display: grid; grid-template-columns: 64px 1fr 70px;
+  align-items: center; gap: 12px;
+}
+.interval-label {
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  color: var(--accent);
+}
+.interval-track {
+  height: 10px; background: var(--surface-3); border-radius: 999px; overflow: hidden;
+  position: relative;
+}
+.interval-fill {
+  height: 100%; border-radius: 999px; transition: width 0.4s ease;
+}
+.interval-fill.ok   { background: var(--ok); }
+.interval-fill.warn { background: var(--warn); }
+.interval-fill.nok  { background: var(--nok); }
+.interval-value {
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  text-align: right;
+}
+.interval-value.ok   { color: var(--ok); }
+.interval-value.warn { color: var(--warn); }
+.interval-value.nok  { color: var(--nok); }
+.interval-nodata { color: var(--text-muted); font-size: 11px; }
+
+@media (max-width: 800px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .chart-card-full { grid-column: 1; }
+}
+@media (max-width: 900px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .page { padding: 14px 14px 40px; }
+  .detail-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">Q</div>
+    <span class="brand-name">QualityCast</span>
+    <span class="brand-sep">/</span>
+    <span class="brand-sub">Dashboard</span>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-status" id="tb-status">
+    <span class="tb-dot loading" id="tb-dot"></span>
+    <span id="tb-status-text">Cargando...</span>
+  </div>
+  <button class="refresh-btn" id="refresh-btn" onclick="cargarDatos(true)">
+    <span class="refresh-icon" id="refresh-icon">↻</span>
+    Actualizar
+  </button>
+</header>
+
+<!-- MAIN -->
+<main class="page" id="main-page">
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loader"></div>
+    <div class="loading-text">Conectando con Google Sheets...</div>
+  </div>
+  <div id="dashboard-content" style="display:none">
+
+    <!-- ALERTAS -->
+    <div class="alerts-bar" id="alerts-bar">
+      <div class="alerts-bar-hd">
+        <span style="font-size:14px;">⚠</span>
+        <span id="alerts-count-label">Alertas activas</span>
+      </div>
+      <div class="alerts-list" id="alerts-list"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Inyectoras activas</div>
+        <div class="stat-value accent" id="stat-activas">—</div>
+        <div class="stat-sub">con registros hoy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Controles OK</div>
+        <div class="stat-value ok" id="stat-ok">—</div>
+        <div class="stat-sub">últimos registros</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Con alertas</div>
+        <div class="stat-value nok" id="stat-alertas">—</div>
+        <div class="stat-sub">inyectoras con desvíos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Último registro</div>
+        <div class="stat-value accent" style="font-size:18px" id="stat-ultimo">—</div>
+        <div class="stat-sub" id="stat-ultimo-quien">—</div>
+      </div>
+    </div>
+
+    <!-- INYECTORAS -->
+    <div class="section-hd">Estado por inyectora</div>
+    <div class="iny-grid" id="iny-grid"></div>
+
+    <!-- GRÁFICOS -->
+    <div class="section-hd" style="margin-top:8px">Análisis</div>
+    <div class="charts-grid">
+
+      <!-- Intervalo entre controles -->
+      <div class="chart-card chart-card-full">
+        <div class="chart-card-hd">
+          <div class="chart-card-title">Intervalo entre controles por inyectora</div>
+          <div class="chart-card-sub">Promedio de tiempo entre registros · alerta si supera 2 hs</div>
+        </div>
+        <div class="interval-bars" id="interval-bars"></div>
+      </div>
+
+      <!-- NOKs por inyectora -->
+      <div class="chart-card">
+        <div class="chart-card-hd">
+          <div class="chart-card-title">NOKs por inyectora</div>
+          <div class="chart-card-sub">Total de controles fallidos</div>
+        </div>
+        <div style="position:relative;height:220px">
+          <canvas id="chart-nok-iny" role="img" aria-label="Cantidad de NOKs por inyectora"></canvas>
+        </div>
+      </div>
+
+      <!-- NOKs por operario -->
+      <div class="chart-card">
+        <div class="chart-card-hd">
+          <div class="chart-card-title">NOKs por operario</div>
+          <div class="chart-card-sub">Top operarios con más desvíos</div>
+        </div>
+        <div style="position:relative;height:220px">
+          <canvas id="chart-nok-op" role="img" aria-label="Cantidad de NOKs por operario"></canvas>
+          <div id="nok-op-empty" style="display:none;align-items:center;justify-content:center;height:220px;color:var(--ok);font-family:var(--mono);font-size:12px;position:absolute;inset:0">Sin NOKs registrados</div>
+        </div>
+      </div>
+
+      <!-- Tendencia pesos -->
+      <div class="chart-card chart-card-full">
+        <div class="chart-card-hd">
+          <div class="chart-card-title">Tendencia de peso promedio por boca</div>
+          <div class="chart-card-sub">Evolución en los últimos registros · seleccioná inyectora</div>
+          <div class="chart-filter" id="peso-filter"></div>
+        </div>
+        <div style="position:relative;height:240px">
+          <canvas id="chart-pesos" role="img" aria-label="Tendencia de pesos por boca"></canvas>
+        </div>
+      </div>
+
+      <!-- Temperaturas horno -->
+      <div class="chart-card chart-card-full">
+        <div class="chart-card-hd">
+          <div class="chart-card-title">Temperaturas del horno</div>
+          <div class="chart-card-sub">Zonas 1–4 en los últimos registros · seleccioná inyectora</div>
+          <div class="chart-filter" id="temp-filter"></div>
+        </div>
+        <div style="position:relative;height:240px">
+          <canvas id="chart-temps" role="img" aria-label="Temperaturas del horno por zona"></canvas>
+        </div>
+      </div>
+
+      <!-- Ciclo de tiempo -->
+      <div class="chart-card chart-card-full">
+        <div class="chart-card-hd">
+          <div class="chart-card-title">Tendencia de tiempo de ciclo</div>
+          <div class="chart-card-sub">Evolución por inyectora en los últimos registros</div>
+        </div>
+        <div style="position:relative;height:220px">
+          <canvas id="chart-ciclo" role="img" aria-label="Tendencia de tiempo de ciclo por inyectora"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- HISTORIAL RECIENTE -->
+    <div class="section-hd" style="margin-top:8px">Últimos registros</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <table class="history-table" id="history-table">
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Inyectora</th>
+            <th>Operario</th>
+            <th>Pieza</th>
+            <th>Tipo</th>
+            <th>Visual</th>
+            <th>Mecha/Torque</th>
+            <th>Temps horno</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL DETALLE -->
+<div class="modal-overlay" id="modal-overlay" onclick="cerrarModal(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-title" id="modal-title">—</div>
+        <div class="modal-sub" id="modal-sub">—</div>
+      </div>
+      <button class="modal-close" onclick="cerrarModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// CONFIGURACIÓN
+// ══════════════════════════════════════════════════════════
+
+// ID de tu Google Spreadsheet — ya lo tenés configurado en QualityCast
+const SHEET_ID = "1jgIp5_v_S-5L5z48BdiGWF8oO-5x8llfUZ77bXv27B0";
+
+// URL pública para leer la hoja (CSV export — no requiere auth)
+const URL_REGISTROS = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Registros`;
+const URL_PIEZAS    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Piezas`;
+
+const INYECTORAS = ["INY 4","INY 5","INY 6","INY 7","INY 8","INY 9"];
+const INTERVALO_MS = 10 * 60 * 1000; // 10 minutos
+
+let datosGlobales = { registros: [], piezas: {}, ultimaCarga: null };
+let timerActualizacion = null;
+
+// ══════════════════════════════════════════════════════════
+// PARSEO CSV
+// ══════════════════════════════════════════════════════════
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  // Parse header
+  const headers = parseLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = parseLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || "").trim(); });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v !== ""));
+}
+
+function parseLine(line) {
+  const result = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      result.push(cur); cur = "";
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ══════════════════════════════════════════════════════════
+// CARGA DE DATOS
+// ══════════════════════════════════════════════════════════
+
+async function cargarDatos(manual = false) {
+  const btn = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+  const dot = document.getElementById('tb-dot');
+  const statusTxt = document.getElementById('tb-status-text');
+
+  btn.disabled = true;
+  icon.classList.add('spinning');
+  dot.className = 'tb-dot loading';
+  statusTxt.textContent = 'Actualizando...';
+
+  try {
+    const [resReg, resPiezas] = await Promise.all([
+      fetch(URL_REGISTROS + '&_=' + Date.now()),
+      fetch(URL_PIEZAS    + '&_=' + Date.now())
+    ]);
+
+    const [csvReg, csvPiezas] = await Promise.all([
+      resReg.text(), resPiezas.text()
+    ]);
+
+    const registros = parseCSV(csvReg);
+    const piezasArr = parseCSV(csvPiezas);
+
+    // Mapear piezas por código
+    const piezas = {};
+    piezasArr.forEach(p => {
+      const cod = (p['Código Pieza'] || p['IDENTIFICACIÓN'] || '').trim();
+      if (cod && cod !== 'Código Pieza') piezas[cod] = p;
+    });
+
+    datosGlobales = { registros, piezas, ultimaCarga: new Date() };
+
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('dashboard-content').style.display = 'block';
+
+    renderDashboard();
+
+    dot.className = 'tb-dot';
+    const hora = datosGlobales.ultimaCarga.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+    statusTxt.textContent = `Actualizado ${hora}`;
+
+  } catch(e) {
+    console.error(e);
+    dot.className = 'tb-dot error';
+    statusTxt.textContent = 'Error al cargar';
+    document.getElementById('loading-overlay').innerHTML =
+      `<div style="text-align:center;color:var(--nok);font-family:var(--mono);font-size:13px;">
+        Error al conectar con Google Sheets.<br>
+        <span style="color:var(--text-muted);font-size:11px;margin-top:8px;display:block">
+          Verificá que la planilla sea pública (ver instrucciones).
+        </span>
+        <button onclick="cargarDatos(true)" style="margin-top:16px;background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:var(--mono);font-size:12px;">
+          Reintentar
+        </button>
+      </div>`;
+    document.getElementById('loading-overlay').style.display = 'flex';
+  }
+
+  btn.disabled = false;
+  icon.classList.remove('spinning');
+
+  // Programar próxima actualización
+  if (timerActualizacion) clearTimeout(timerActualizacion);
+  timerActualizacion = setTimeout(() => cargarDatos(), INTERVALO_MS);
+}
+
+// ══════════════════════════════════════════════════════════
+// ANÁLISIS DE ALERTAS
+// ══════════════════════════════════════════════════════════
+
+function analizarRegistro(reg, piezas) {
+  const alertas = [];
+  const warns   = [];
+  const cod = (reg['Código Pieza'] || '').trim();
+  const params = piezas[cod] || null;
+  const tipo = (reg['Tipo Protector'] || '').toUpperCase();
+  const bocas = parseInt(reg['Bocas'] || '0') || 0;
+
+  // ── Controles booleanos NOK ──
+  if (reg['Visual 100%'] === 'NO OK') alertas.push({ msg: 'Visual 100% NOK', tipo: 'nok' });
+  if (tipo === 'BALDE'    && reg['Torneado'] === 'NO OK') alertas.push({ msg: 'Torneado NOK', tipo: 'nok' });
+  if (tipo === 'BISELADO' && reg['Calibre Pasa/No Pasa'] === 'NO OK') alertas.push({ msg: 'Calibre NOK', tipo: 'nok' });
+
+  // Mechas y torques por boca
+  for (let i = 1; i <= bocas; i++) {
+    const mecha  = reg[`Mecha Boca ${i}`];
+    const torque = reg[`Torque Boca ${i}`];
+    if (mecha  === 'NO OK') alertas.push({ msg: `Mecha Boca ${i} NOK`, tipo: 'nok' });
+    if (torque === 'NO OK') alertas.push({ msg: `Torque Boca ${i} NOK`, tipo: 'nok' });
+  }
+
+  if (!params) return { alertas, warns, tieneParams: false };
+
+  // ── Pesos por boca ──
+  const pesoMin = parseFloat((params['PESO (g)/Min'] || '').replace(',','.'));
+  const pesoMax = parseFloat((params['PESO (g)/Max'] || '').replace(',','.'));
+  if (!isNaN(pesoMin) && !isNaN(pesoMax)) {
+    for (let i = 1; i <= bocas; i++) {
+      const val = parseFloat((reg[`Peso Boca ${i}`] || '').replace(',','.'));
+      if (!isNaN(val)) {
+        if (val < pesoMin || val > pesoMax) {
+          alertas.push({ msg: `Peso Boca ${i}: ${val}g (rango ${pesoMin}–${pesoMax}g)`, tipo: 'peso', boca: i });
+        }
+      }
+    }
+  }
+
+  // ── Temperaturas horno ──
+  for (let z = 1; z <= 4; z++) {
+    const minKey = `HORNO ZONA ${z} (°C)/Min`;
+    const maxKey = `HORNO ZONA ${z} (°C)/Max`;
+    const zMin = parseFloat((params[minKey] || '').replace(',','.'));
+    const zMax = parseFloat((params[maxKey] || '').replace(',','.'));
+    if (!isNaN(zMin) && !isNaN(zMax)) {
+      const val = parseFloat((reg[`Zona ${z} (°C)`] || '').replace(',','.'));
+      if (!isNaN(val) && (val < zMin || val > zMax)) {
+        alertas.push({ msg: `Zona ${z}: ${val}°C (rango ${zMin}–${zMax}°C)`, tipo: 'temp', zona: z });
+      }
+    }
+  }
+
+  // ── Dimensiones (solo BALDE) ──
+  if (tipo === 'BALDE') {
+    const dims = [
+      ['Diám. Interno (mm)', 'DIÁM. INTERNO (mm)/Min', 'DIÁM. INTERNO (mm)/Max', 'Diám. Int'],
+      ['Diám. Externo (mm)', 'DIÁM. EXTERNO (mm)/Min', 'DIÁM. EXTERNO (mm)/Max', 'Diám. Ext'],
+      ['Altura (mm)',        'ALTURA (mm)/Min',        'ALTURA (mm)/Max',        'Altura'],
+    ];
+    dims.forEach(([regKey, minKey, maxKey, label]) => {
+      const val = parseFloat((reg[regKey] || '').replace(',','.'));
+      const mn  = parseFloat((params[minKey] || '').replace(',','.'));
+      const mx  = parseFloat((params[maxKey] || '').replace(',','.'));
+      if (!isNaN(val) && !isNaN(mn) && !isNaN(mx)) {
+        if (val < mn || val > mx) {
+          alertas.push({ msg: `${label}: ${val}mm (rango ${mn}–${mx}mm)`, tipo: 'dim' });
+        }
+      }
+    });
+  }
+
+  return { alertas, warns, tieneParams: true };
+}
+
+function estadoRegistro(analisis) {
+  if (analisis.alertas.length > 0) return 'nok';
+  if (analisis.warns.length  > 0) return 'warn';
+  return 'ok';
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER PRINCIPAL
+// ══════════════════════════════════════════════════════════
+
+function renderDashboard() {
+  const { registros, piezas } = datosGlobales;
+
+  // Último registro por inyectora
+  const porInyectora = {};
+  INYECTORAS.forEach(id => { porInyectora[id] = []; });
+  registros.forEach(r => {
+    const iny = r['Inyectora'] || '';
+    if (porInyectora[iny] !== undefined) porInyectora[iny].push(r);
+  });
+
+  // Para cada inyectora, tomar el más reciente
+  const ultimosPorIny = {};
+  INYECTORAS.forEach(id => {
+    const arr = porInyectora[id];
+    if (arr.length === 0) { ultimosPorIny[id] = null; return; }
+    arr.sort((a,b) => new Date(b['Timestamp']||0) - new Date(a['Timestamp']||0));
+    ultimosPorIny[id] = arr[0];
+  });
+
+  // Stats globales
+  const todosUltimos = INYECTORAS.map(id => ultimosPorIny[id]).filter(Boolean);
+  const analisisPorIny = {};
+  todosUltimos.forEach(r => {
+    analisisPorIny[r['Inyectora']] = analizarRegistro(r, piezas);
+  });
+
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const activas = todosUltimos.filter(r => new Date(r['Timestamp']||0) >= hoy).length;
+  const conAlerta = todosUltimos.filter(r => estadoRegistro(analisisPorIny[r['Inyectora']]) === 'nok').length;
+  const ok        = activas - conAlerta;
+
+  // Último registro global
+  let ultimoGlobal = null;
+  registros.forEach(r => {
+    if (!ultimoGlobal || new Date(r['Timestamp']||0) > new Date(ultimoGlobal['Timestamp']||0))
+      ultimoGlobal = r;
+  });
+
+  document.getElementById('stat-activas').textContent = activas;
+  document.getElementById('stat-ok').textContent = ok;
+  document.getElementById('stat-alertas').textContent = conAlerta;
+  if (ultimoGlobal) {
+    const ts = new Date(ultimoGlobal['Timestamp']);
+    document.getElementById('stat-ultimo').textContent =
+      ts.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('stat-ultimo-quien').textContent =
+      `${ultimoGlobal['Inyectora']} · ${(ultimoGlobal['Operario']||'').split(' ')[0]}`;
+  }
+
+  // ── Alertas consolidadas ──
+  const todasAlertas = [];
+  todosUltimos.forEach(r => {
+    const an = analisisPorIny[r['Inyectora']];
+    an.alertas.forEach(a => {
+      todasAlertas.push({ iny: r['Inyectora'], msg: a.msg, ts: r['Timestamp'], operario: r['Operario'] });
+    });
+  });
+
+  const alertsBar = document.getElementById('alerts-bar');
+  const alertsList = document.getElementById('alerts-list');
+  if (todasAlertas.length > 0) {
+    alertsBar.classList.add('visible');
+    document.getElementById('alerts-count-label').textContent =
+      `${todasAlertas.length} alerta${todasAlertas.length > 1 ? 's' : ''} activa${todasAlertas.length > 1 ? 's' : ''}`;
+    alertsList.innerHTML = todasAlertas.map(a => {
+      const ts = a.ts ? new Date(a.ts).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) : '';
+      return `<div class="alert-item">
+        <div class="alert-dot"></div>
+        <div>
+          <div class="alert-text"><strong>${a.iny}</strong> — ${a.msg}</div>
+          <div class="alert-meta">${ts}${a.operario ? ' · ' + a.operario : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    alertsBar.classList.remove('visible');
+  }
+
+  // ── Cards inyectoras ──
+  const grid = document.getElementById('iny-grid');
+  grid.innerHTML = INYECTORAS.map(id => {
+    const reg = ultimosPorIny[id];
+    if (!reg) {
+      return `<div class="iny-card no-data" style="cursor:default">
+        <div class="iny-card-hd">
+          <div class="iny-id">${id}</div>
+          <div class="tb-spacer"></div>
+          <div class="iny-status no-data"><span class="iny-status-dot"></span>Sin datos</div>
+        </div>
+        <div class="iny-card-body"><div class="no-data-msg">Sin registros</div></div>
+      </div>`;
+    }
+
+    const an = analisisPorIny[id];
+    const estado = estadoRegistro(an);
+    const tipo = (reg['Tipo Protector'] || '').toUpperCase();
+    const bocas = parseInt(reg['Bocas'] || 0);
+    const cod = reg['Código Pieza'] || '—';
+    const params = piezas[cod] || null;
+
+    const estadoLabel = estado === 'nok' ? `${an.alertas.length} alerta${an.alertas.length>1?'s':''}` :
+                        estado === 'warn' ? 'Aviso' : 'OK';
+
+    // Pesos por boca
+    const bocasHTML = Array.from({length: bocas}, (_, i) => {
+      const pesoRaw = (reg[`Peso Boca ${i+1}`] || '').trim();
+      const peso = parseFloat(pesoRaw.replace(',','.'));
+      let cls = '';
+      if (params && !isNaN(peso)) {
+        const mn = parseFloat((params['PESO (g)/Min']||'').replace(',','.'));
+        const mx = parseFloat((params['PESO (g)/Max']||'').replace(',','.'));
+        if (!isNaN(mn) && !isNaN(mx) && (peso < mn || peso > mx)) cls = 'alert';
+      }
+      const mechaRaw  = (reg[`Mecha Boca ${i+1}`] || '').trim();
+      const torqueRaw = (reg[`Torque Boca ${i+1}`] || '').trim();
+      const checkRaw  = tipo === 'ROSCADO' ? torqueRaw : mechaRaw;
+      const nok = checkRaw === 'NO OK';
+      if (nok) cls = 'alert';
+      return `<div class="boca-chip ${cls}">
+        <span class="boca-num">B${i+1}</span>
+        <span class="boca-val ${cls}">${pesoRaw || '—'}g</span>
+        ${nok ? '<span class="boca-nok-dot"></span>' : ''}
+      </div>`;
+    }).join('');
+
+    // Temps horno
+    const tempsHTML = [1,2,3,4].map(z => {
+      const val = (reg[`Zona ${z} (°C)`] || '').trim();
+      if (!val) return '';
+      let cls = '';
+      if (params) {
+        const mn = parseFloat((params[`HORNO ZONA ${z} (°C)/Min`]||'').replace(',','.'));
+        const mx = parseFloat((params[`HORNO ZONA ${z} (°C)/Max`]||'').replace(',','.'));
+        const v  = parseFloat(val.replace(',','.'));
+        if (!isNaN(mn) && !isNaN(mx) && !isNaN(v) && (v < mn || v > mx)) cls = 'alert';
+      }
+      return `<div class="temp-chip ${cls}">
+        <span class="temp-label">Z${z}</span>
+        <span class="temp-val ${cls}">${val}°</span>
+      </div>`;
+    }).filter(Boolean).join('');
+
+    // Checks generales
+    const visual  = reg['Visual 100%'] || '';
+    const torneado = reg['Torneado'] || '';
+    const calibre  = reg['Calibre Pasa/No Pasa'] || '';
+    const checksHTML = [
+      visual  ? `<span class="check-badge ${visual==='OK'?'ok':'nok'}">Visual ${visual}</span>` : '',
+      tipo === 'BALDE' && torneado  ? `<span class="check-badge ${torneado==='OK'?'ok':'nok'}">Torneado ${torneado}</span>` : '',
+      tipo === 'BISELADO' && calibre ? `<span class="check-badge ${calibre==='OK'?'ok':'nok'}">Calibre ${calibre}</span>` : '',
+    ].filter(Boolean).join('');
+
+    const ts = reg['Timestamp'] ? new Date(reg['Timestamp']) : null;
+    const horaStr = ts ? ts.toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const opNombre = (reg['Operario'] || '—').split(' ').slice(0,2).join(' ');
+
+    return `<div class="iny-card ${estado}" onclick="abrirModal('${id}')">
+      <div class="iny-card-hd">
+        <div class="iny-id">${id}</div>
+        <div class="iny-tipo">${tipo || '—'}</div>
+        <div class="iny-spacer"></div>
+        <div class="iny-status ${estado}">
+          <span class="iny-status-dot"></span>
+          ${estadoLabel}
+        </div>
+      </div>
+      <div class="iny-card-body">
+        <div class="iny-info-row">
+          <div class="iny-info-item">
+            <div class="iny-info-label">Pieza</div>
+            <div class="iny-info-value">${cod}</div>
+          </div>
+          <div class="iny-info-item">
+            <div class="iny-info-label">Operario</div>
+            <div class="iny-info-value dim">${opNombre}</div>
+          </div>
+        </div>
+        ${bocas > 0 ? `<div>
+          <div class="iny-info-label" style="margin-bottom:6px">Bocas (${bocas})</div>
+          <div class="bocas-row">${bocasHTML}</div>
+        </div>` : ''}
+        ${tempsHTML ? `<div>
+          <div class="iny-info-label" style="margin-bottom:6px">Horno</div>
+          <div class="temps-row">${tempsHTML}</div>
+        </div>` : ''}
+        ${checksHTML ? `<div class="checks-row">${checksHTML}</div>` : ''}
+        <div class="iny-timestamp">🕐 ${horaStr} · ${!an.tieneParams ? '<span style="color:var(--warn-border)">Sin parámetros cargados</span>' : (an.alertas.length === 0 ? '<span style="color:var(--ok)">Sin desvíos</span>' : `<span style="color:var(--nok)">${an.alertas.length} desvío${an.alertas.length>1?'s':''}</span>`)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Historial reciente ──
+  const recientes = [...registros]
+    .sort((a,b) => new Date(b['Timestamp']||0) - new Date(a['Timestamp']||0))
+    .slice(0, 20);
+
+  const tbody = document.getElementById('history-body');
+  tbody.innerHTML = recientes.map(r => {
+    const an = analizarRegistro(r, piezas);
+    const est = estadoRegistro(an);
+    const ts = r['Timestamp'] ? new Date(r['Timestamp']) : null;
+    const hora = ts ? ts.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}) + '<br><span style="color:var(--text-muted);font-size:10px">' + ts.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}) + '</span>' : '—';
+    const tipo = (r['Tipo Protector']||'').toUpperCase();
+    const bocas = parseInt(r['Bocas']||0);
+    const visual = r['Visual 100%'] || '';
+    const check2 = tipo==='BALDE' ? (r['Torneado']||'') : tipo==='BISELADO' ? (r['Calibre Pasa/No Pasa']||'') : tipo==='ROSCADO' ? '' : '';
+
+    // Mechas/torques resumen
+    let mechaResumen = '—';
+    const noks = [];
+    for (let i=1;i<=bocas;i++) {
+      const m = r[`Mecha Boca ${i}`]||r[`Torque Boca ${i}`]||'';
+      if (m === 'NO OK') noks.push(i);
+    }
+    if (bocas > 0) mechaResumen = noks.length > 0 ? `<span class="h-nok">NOK B${noks.join(',')}</span>` : '<span class="h-ok">OK</span>';
+
+    // Temps
+    const ts1 = r['Zona 1 (°C)']||''; const ts2 = r['Zona 2 (°C)']||'';
+    const ts3 = r['Zona 3 (°C)']||''; const ts4 = r['Zona 4 (°C)']||'';
+    const tempsStr = [ts1,ts2,ts3,ts4].filter(Boolean).map(t=>t+'°').join(' ');
+
+    const estadoBadge = est === 'nok'
+      ? `<span style="color:var(--nok);font-size:11px;font-weight:600">● ${an.alertas.length} alerta${an.alertas.length>1?'s':''}</span>`
+      : `<span style="color:var(--ok);font-size:11px;font-weight:600">● OK</span>`;
+
+    return `<tr onclick="abrirModalRegistro(${JSON.stringify(r).replace(/"/g,'&quot;')})" style="cursor:pointer">
+      <td>${hora}</td>
+      <td style="color:var(--accent);font-weight:600">${r['Inyectora']||'—'}</td>
+      <td>${(r['Operario']||'—').split(' ').slice(0,2).join(' ')}</td>
+      <td>${r['Código Pieza']||'—'}</td>
+      <td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface-3);color:var(--text-dim)">${tipo}</span></td>
+      <td class="${visual==='OK'?'h-ok':visual?'h-nok':''}">${visual||'—'}</td>
+      <td>${mechaResumen}</td>
+      <td style="color:var(--text-muted);font-size:11px">${tempsStr||'—'}</td>
+      <td>${estadoBadge}</td>
+    </tr>`;
+  }).join('');
+
+  // Render charts after DOM update
+  setTimeout(() => { if (typeof Chart !== 'undefined') renderCharts(); }, 50);
+}
+
+// ══════════════════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════════════════
+
+function abrirModal(inyId) {
+  const { registros, piezas } = datosGlobales;
+  const arr = registros
+    .filter(r => r['Inyectora'] === inyId)
+    .sort((a,b) => new Date(b['Timestamp']||0) - new Date(a['Timestamp']||0));
+
+  if (!arr.length) return;
+  const reg = arr[0];
+  abrirModalRegistro(reg, arr.slice(0,5));
+}
+
+function abrirModalRegistro(reg, historial) {
+  if (typeof reg === 'string') reg = JSON.parse(reg);
+  const { piezas } = datosGlobales;
+  const an = analizarRegistro(reg, piezas);
+  const tipo = (reg['Tipo Protector']||'').toUpperCase();
+  const bocas = parseInt(reg['Bocas']||0);
+  const cod = reg['Código Pieza']||'—';
+  const params = piezas[cod] || null;
+
+  document.getElementById('modal-title').textContent = `${reg['Inyectora']||'—'} · ${tipo}`;
+  const ts = reg['Timestamp'] ? new Date(reg['Timestamp']) : null;
+  document.getElementById('modal-sub').textContent =
+    `Pieza ${cod} · ${(reg['Operario']||'—')} · ${ts ? ts.toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}`;
+
+  let html = '';
+
+  // Alertas
+  if (an.alertas.length > 0) {
+    html += `<div class="modal-section">
+      <div class="modal-section-title" style="color:var(--nok)">⚠ ${an.alertas.length} alerta${an.alertas.length>1?'s':''} detectada${an.alertas.length>1?'s':''}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${an.alertas.map(a => `<div style="background:var(--nok-soft);border:1px solid var(--nok-border);border-radius:8px;padding:8px 12px;font-size:12px;font-family:var(--mono);color:var(--nok)">⚠ ${a.msg}</div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Bocas
+  if (bocas > 0) {
+    const pesoMin = params ? parseFloat((params['PESO (g)/Min']||'').replace(',','.')) : NaN;
+    const pesoMax = params ? parseFloat((params['PESO (g)/Max']||'').replace(',','.')) : NaN;
+    html += `<div class="modal-section">
+      <div class="modal-section-title">Control por boca</div>
+      <div class="detail-grid">
+        ${Array.from({length:bocas},(_,i)=>{
+          const pesoRaw = (reg[`Peso Boca ${i+1}`]||'').trim();
+          const peso = parseFloat(pesoRaw.replace(',','.'));
+          const mechaRaw  = (reg[`Mecha Boca ${i+1}`]||'').trim();
+          const torqueRaw = (reg[`Torque Boca ${i+1}`]||'').trim();
+          const check = tipo==='ROSCADO' ? torqueRaw : mechaRaw;
+          const checkLabel = tipo==='ROSCADO' ? 'Torque' : 'Mecha';
+          let pesoCls = '', pesoRng = '';
+          if (!isNaN(peso) && !isNaN(pesoMin) && !isNaN(pesoMax)) {
+            if (peso < pesoMin || peso > pesoMax) {
+              pesoCls = 'alert';
+              pesoRng = `<div class="detail-range alert">Rango: ${pesoMin}–${pesoMax}g</div>`;
+            } else {
+              pesoRng = `<div class="detail-range">Rango: ${pesoMin}–${pesoMax}g</div>`;
+            }
+          }
+          const checkCls = check==='NOK'||check==='NO OK' ? 'alert' : check==='OK' ? 'ok' : '';
+          return `<div class="detail-item ${pesoCls||checkCls==='alert'?'alert':''}">
+            <div class="detail-label">Boca ${i+1}</div>
+            <div class="detail-value ${pesoCls}">${pesoRaw||'—'}g</div>
+            ${pesoRng}
+            ${check ? `<div style="margin-top:4px;font-size:11px;font-family:var(--mono);color:var(--${checkCls==='ok'?'ok':checkCls==='alert'?'nok':'text-muted'})">${checkLabel}: ${check}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Horno
+  const zonas = [1,2,3,4,5,6].map(z => ({ z, val: (reg[`Zona ${z} (°C)`]||'').trim() })).filter(x=>x.val);
+  if (zonas.length > 0) {
+    html += `<div class="modal-section">
+      <div class="modal-section-title">Temperaturas horno</div>
+      <div class="detail-grid">
+        ${zonas.map(({z, val}) => {
+          const v = parseFloat(val.replace(',','.'));
+          let cls = '', rng = '';
+          if (params && z <= 4) {
+            const mn = parseFloat((params[`HORNO ZONA ${z} (°C)/Min`]||'').replace(',','.'));
+            const mx = parseFloat((params[`HORNO ZONA ${z} (°C)/Max`]||'').replace(',','.'));
+            if (!isNaN(mn) && !isNaN(mx)) {
+              if (!isNaN(v) && (v < mn || v > mx)) { cls = 'alert'; rng = `<div class="detail-range alert">Rango: ${mn}–${mx}°C</div>`; }
+              else rng = `<div class="detail-range">Rango: ${mn}–${mx}°C</div>`;
+            }
+          }
+          return `<div class="detail-item ${cls}">
+            <div class="detail-label">Zona ${z}</div>
+            <div class="detail-value ${cls}">${val}°C</div>
+            ${rng}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Condiciones
+  const agua = reg['Temp. Agua (°C)']||''; const amb = reg['Temp. Ambiente (°C)']||''; const ciclo = reg['Ciclo (seg)']||'';
+  if (agua||amb||ciclo) {
+    html += `<div class="modal-section">
+      <div class="modal-section-title">Condiciones de proceso</div>
+      <div class="detail-grid">
+        ${agua  ? `<div class="detail-item"><div class="detail-label">Temp. Agua</div><div class="detail-value">${agua}°C</div></div>` : ''}
+        ${amb   ? `<div class="detail-item"><div class="detail-label">Temp. Ambiente</div><div class="detail-value">${amb}°C</div></div>` : ''}
+        ${ciclo ? `<div class="detail-item"><div class="detail-label">Tiempo de ciclo</div><div class="detail-value">${ciclo} seg</div></div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  // Dimensiones (BALDE)
+  if (tipo === 'BALDE') {
+    const di = reg['Diám. Interno (mm)']||''; const de = reg['Diám. Externo (mm)']||''; const al = reg['Altura (mm)']||'';
+    if (di||de||al) {
+      const dims = [
+        [di, 'DIÁM. INTERNO (mm)/Min', 'DIÁM. INTERNO (mm)/Max', 'Diám. Interno', 'mm'],
+        [de, 'DIÁM. EXTERNO (mm)/Min', 'DIÁM. EXTERNO (mm)/Max', 'Diám. Externo', 'mm'],
+        [al, 'ALTURA (mm)/Min',        'ALTURA (mm)/Max',        'Altura',        'mm'],
+      ];
+      html += `<div class="modal-section">
+        <div class="modal-section-title">Dimensiones</div>
+        <div class="detail-grid">
+          ${dims.map(([val, minK, maxK, label, unit]) => {
+            if (!val) return '';
+            const v = parseFloat(val.replace(',','.'));
+            let cls = '', rng = '';
+            if (params) {
+              const mn = parseFloat((params[minK]||'').replace(',','.'));
+              const mx = parseFloat((params[maxK]||'').replace(',','.'));
+              if (!isNaN(mn) && !isNaN(mx)) {
+                if (!isNaN(v) && (v < mn || v > mx)) { cls = 'alert'; rng = `<div class="detail-range alert">Rango: ${mn}–${mx}${unit}</div>`; }
+                else rng = `<div class="detail-range">Rango: ${mn}–${mx}${unit}</div>`;
+              }
+            }
+            return `<div class="detail-item ${cls}">
+              <div class="detail-label">${label}</div>
+              <div class="detail-value ${cls}">${val}${unit}</div>
+              ${rng}
+            </div>`;
+          }).filter(Boolean).join('')}
+        </div>
+      </div>`;
+    }
+  }
+
+  // Controles generales
+  const visual = reg['Visual 100%']||''; const torn = reg['Torneado']||''; const cal = reg['Calibre Pasa/No Pasa']||'';
+  html += `<div class="modal-section">
+    <div class="modal-section-title">Controles generales</div>
+    <div class="detail-grid">
+      ${visual ? `<div class="detail-item ${visual!=='OK'?'alert':''}"><div class="detail-label">Visual 100%</div><div class="detail-value ${visual==='OK'?'ok':'alert'}">${visual}</div></div>` : ''}
+      ${torn   ? `<div class="detail-item ${torn!=='OK'?'alert':''}"><div class="detail-label">Torneado</div><div class="detail-value ${torn==='OK'?'ok':'alert'}">${torn}</div></div>` : ''}
+      ${cal    ? `<div class="detail-item ${cal!=='OK'?'alert':''}"><div class="detail-label">Calibre</div><div class="detail-value ${cal==='OK'?'ok':'alert'}">${cal}</div></div>` : ''}
+    </div>
+  </div>`;
+
+  // Parámetros disponibles
+  if (!params) {
+    html += `<div style="background:var(--warn-soft);border:1px solid var(--warn-border);border-radius:8px;padding:10px 14px;font-size:12px;font-family:var(--mono);color:var(--warn);margin-top:4px">
+      ⚠ Sin parámetros de tolerancia para la pieza ${cod}. Los desvíos numéricos no se pueden verificar.
+    </div>`;
+  }
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cerrarModal(e) {
+  if (!e || e.target === document.getElementById('modal-overlay') || e.target.classList.contains('modal-close')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModal({}); });
+
+// ══════════════════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════════════════
+
+let chartNokIny = null, chartNokOp = null, chartPesos = null, chartTemps = null, chartCiclo = null;
+window.pesoFiltroIny = null;
+window.tempFiltroIny = null;
+
+const ZONA_COLORS = ['#22d3ee','#34d399','#fbbf24','#f87171','#a78bfa','#fb923c'];
+const INY_COLORS  = {
+  'INY 4':'#22d3ee','INY 5':'#34d399','INY 6':'#fbbf24',
+  'INY 7':'#a78bfa','INY 8':'#fb923c','INY 9':'#f472b6'
+};
+
+function destroyChart(c) { if (c) { try { c.destroy(); } catch(e){} } return null; }
+
+window.renderCharts = function renderCharts() {
+  if (typeof Chart === 'undefined') return;
+  const { registros, piezas } = datosGlobales;
+
+  // ── 1. INTERVALO ENTRE CONTROLES ──
+  const intervalHtml = INYECTORAS.map(id => {
+    const arr = registros.filter(r => r['Inyectora']===id)
+      .map(r => new Date(r['Timestamp']||0))
+      .filter(d => !isNaN(d))
+      .sort((a,b) => a-b);
+
+    if (arr.length < 2) {
+      return `<div class="interval-row">
+        <div class="interval-label">${id}</div>
+        <div class="interval-track"><div class="interval-fill ok" style="width:0%"></div></div>
+        <div class="interval-value interval-nodata">sin datos</div>
+      </div>`;
+    }
+    let totalMs = 0;
+    for (let i=1;i<arr.length;i++) totalMs += arr[i]-arr[i-1];
+    const avgMin = totalMs / (arr.length-1) / 60000;
+    const avgH   = avgMin / 60;
+    const label  = avgH >= 1 ? avgH.toFixed(1)+'h' : Math.round(avgMin)+'min';
+    // escala: 0–4h, alerta en 2h
+    const pct = Math.min(100, (avgH/4)*100);
+    const cls = avgH <= 2 ? 'ok' : avgH <= 3 ? 'warn' : 'nok';
+    return `<div class="interval-row">
+      <div class="interval-label">${id}</div>
+      <div class="interval-track"><div class="interval-fill ${cls}" style="width:${pct.toFixed(1)}%"></div></div>
+      <div class="interval-value ${cls}">${label}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('interval-bars').innerHTML = intervalHtml;
+
+  // ── 2. NOKs POR INYECTORA ──
+  const nokPorIny = {};
+  INYECTORAS.forEach(id => { nokPorIny[id] = 0; });
+  registros.forEach(r => {
+    const iny = r['Inyectora'];
+    if (!nokPorIny.hasOwnProperty(iny)) return;
+    const an = analizarRegistro(r, piezas);
+    nokPorIny[iny] += an.alertas.length;
+  });
+  chartNokIny = destroyChart(chartNokIny);
+  chartNokIny = new Chart(document.getElementById('chart-nok-iny'), {
+    type: 'bar',
+    data: {
+      labels: INYECTORAS,
+      datasets: [{
+        label: 'NOKs',
+        data: INYECTORAS.map(id => nokPorIny[id]),
+        backgroundColor: INYECTORAS.map(id => nokPorIny[id]>0 ? 'rgba(248,113,113,0.7)' : 'rgba(52,211,153,0.5)'),
+        borderColor:     INYECTORAS.map(id => nokPorIny[id]>0 ? '#f87171' : '#34d399'),
+        borderWidth: 1, borderRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color:'#98a4b3', font:{family:'monospace',size:11} }, grid:{color:'rgba(36,50,67,0.6)'} },
+        y: { ticks: { color:'#98a4b3', font:{size:11}, stepSize:1 }, grid:{color:'rgba(36,50,67,0.6)'}, beginAtZero:true }
+      }
+    }
+  });
+
+  // ── 3. NOKs POR OPERARIO ──
+  const nokPorOp = {};
+  registros.forEach(r => {
+    const op = (r['Operario']||'').split(' ').slice(0,2).join(' ') || 'Desconocido';
+    const an = analizarRegistro(r, piezas);
+    if (an.alertas.length > 0) nokPorOp[op] = (nokPorOp[op]||0) + an.alertas.length;
+  });
+  const opSorted = Object.entries(nokPorOp).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  // ── 3. NOKs POR OPERARIO ──
+  chartNokOp = destroyChart(chartNokOp);
+  const nokOpCanvas = document.getElementById('chart-nok-op');
+  const nokOpEmpty  = document.getElementById('nok-op-empty');
+  if (opSorted.length > 0) {
+    if (nokOpCanvas) nokOpCanvas.style.display = '';
+    if (nokOpEmpty)  nokOpEmpty.style.display  = 'none';
+    chartNokOp = new Chart(nokOpCanvas, {
+      type: 'bar',
+      data: {
+        labels: opSorted.map(e=>e[0]),
+        datasets: [{
+          label: 'NOKs',
+          data: opSorted.map(e=>e[1]),
+          backgroundColor: 'rgba(251,191,36,0.6)',
+          borderColor: '#fbbf24', borderWidth:1, borderRadius:5,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks:{color:'#98a4b3',font:{size:11}}, grid:{color:'rgba(36,50,67,0.6)'}, beginAtZero:true },
+          y: { ticks:{color:'#98a4b3',font:{family:'monospace',size:10}}, grid:{display:false} }
+        }
+      }
+    });
+  } else {
+    if (nokOpCanvas) nokOpCanvas.style.display = 'none';
+    if (nokOpEmpty)  nokOpEmpty.style.display  = 'flex';
+  }
+
+  // ── 4. FILTROS INYECTORA (pesos y temps) ──
+  const inyConDatos = INYECTORAS.filter(id => registros.some(r=>r['Inyectora']===id));
+  if (!window.pesoFiltroIny || !inyConDatos.includes(window.pesoFiltroIny)) window.pesoFiltroIny = inyConDatos[0] || INYECTORAS[0];
+  if (!window.tempFiltroIny  || !inyConDatos.includes(window.tempFiltroIny))  window.tempFiltroIny  = inyConDatos[0] || INYECTORAS[0];
+
+  // Hack: expose setters globally
+  window._setPesoFiltro = v => { window.pesoFiltroIny = v; };
+  window._setTempFiltro = v => { window.tempFiltroIny = v; };
+
+  document.getElementById('peso-filter').innerHTML = inyConDatos.map(id =>
+    `<button class="filter-btn ${id===window.pesoFiltroIny?'active':''}" onclick="window.pesoFiltroIny='${id}';renderCharts()">${id}</button>`
+  ).join('');
+  document.getElementById('temp-filter').innerHTML = inyConDatos.map(id =>
+    `<button class="filter-btn ${id===window.tempFiltroIny?'active':''}" onclick="window.tempFiltroIny='${id}';renderCharts()">${id}</button>`
+  ).join('');
+
+  // ── 5. TENDENCIA PESOS ──
+  const regPesos = registros
+    .filter(r => r['Inyectora']===window.pesoFiltroIny)
+    .sort((a,b)=>new Date(a['Timestamp']||0)-new Date(b['Timestamp']||0))
+    .slice(-15);
+
+  const pesoLabels = regPesos.map(r => {
+    const d = new Date(r['Timestamp']||0);
+    return d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  });
+
+  // Calcular promedio de bocas por registro
+  const pesosData = regPesos.map(r => {
+    const bocas = parseInt(r['Bocas']||0);
+    let sum=0, cnt=0;
+    for(let i=1;i<=bocas;i++){
+      const v=parseFloat((r[`Peso Boca ${i}`]||'').replace(',','.'));
+      if(!isNaN(v)){sum+=v;cnt++;}
+    }
+    return cnt>0 ? parseFloat((sum/cnt).toFixed(2)) : null;
+  });
+
+  // Rango de la pieza si existe
+  const codEj = regPesos[0] ? (regPesos[0]['Código Pieza']||'') : '';
+  const paramsEj = piezas[codEj]||null;
+  const pesoMin = paramsEj ? parseFloat((paramsEj['PESO (g)/Min']||'').replace(',','.')) : NaN;
+  const pesoMax = paramsEj ? parseFloat((paramsEj['PESO (g)/Max']||'').replace(',','.')) : NaN;
+
+  chartPesos = destroyChart(chartPesos);
+  const pesoDatasets = [{
+    label: 'Peso promedio (g)',
+    data: pesosData,
+    borderColor: INY_COLORS[window.pesoFiltroIny]||'#22d3ee',
+    backgroundColor: 'transparent',
+    borderWidth: 2, pointRadius: 4,
+    pointBackgroundColor: pesosData.map(v => {
+      if (v===null) return 'transparent';
+      if (!isNaN(pesoMin)&&!isNaN(pesoMax)&&(v<pesoMin||v>pesoMax)) return '#f87171';
+      return INY_COLORS[window.pesoFiltroIny]||'#22d3ee';
+    }),
+    pointBorderColor: 'transparent',
+    tension: 0.3, spanGaps: true,
+  }];
+  if (!isNaN(pesoMin)) pesoDatasets.push({ label:`Mín ${pesoMin}g`, data: pesoLabels.map(()=>pesoMin), borderColor:'rgba(248,113,113,0.4)', borderDash:[4,4], borderWidth:1, pointRadius:0, backgroundColor:'transparent' });
+  if (!isNaN(pesoMax)) pesoDatasets.push({ label:`Máx ${pesoMax}g`, data: pesoLabels.map(()=>pesoMax), borderColor:'rgba(248,113,113,0.4)', borderDash:[4,4], borderWidth:1, pointRadius:0, backgroundColor:'transparent' });
+
+  chartPesos = new Chart(document.getElementById('chart-pesos'), {
+    type: 'line',
+    data: { labels: pesoLabels, datasets: pesoDatasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: pesoDatasets.length>1, labels:{color:'#98a4b3',font:{size:11},boxWidth:12,padding:12} } },
+      scales: {
+        x: { ticks:{color:'#98a4b3',font:{size:10},maxRotation:45,autoSkip:false}, grid:{color:'rgba(36,50,67,0.6)'} },
+        y: { ticks:{color:'#98a4b3',font:{size:11}}, grid:{color:'rgba(36,50,67,0.6)'} }
+      }
+    }
+  });
+
+  // ── 6. TEMPERATURAS ──
+  const regTemps = registros
+    .filter(r => r['Inyectora']===window.tempFiltroIny)
+    .sort((a,b)=>new Date(a['Timestamp']||0)-new Date(b['Timestamp']||0))
+    .slice(-15);
+
+  const tempLabels = regTemps.map(r => {
+    const d = new Date(r['Timestamp']||0);
+    return d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  });
+
+  chartTemps = destroyChart(chartTemps);
+  chartTemps = new Chart(document.getElementById('chart-temps'), {
+    type: 'line',
+    data: {
+      labels: tempLabels,
+      datasets: [1,2,3,4].map((z,idx) => ({
+        label: `Zona ${z}`,
+        data: regTemps.map(r => {
+          const v = parseFloat((r[`Zona ${z} (°C)`]||'').replace(',','.'));
+          return isNaN(v) ? null : v;
+        }),
+        borderColor: ZONA_COLORS[idx],
+        backgroundColor: 'transparent',
+        borderWidth: 2, pointRadius: 3, tension: 0.3, spanGaps: true,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels:{color:'#98a4b3',font:{size:11},boxWidth:12,padding:12} } },
+      scales: {
+        x: { ticks:{color:'#98a4b3',font:{size:10},maxRotation:45,autoSkip:false}, grid:{color:'rgba(36,50,67,0.6)'} },
+        y: { ticks:{color:'#98a4b3',font:{size:11}}, grid:{color:'rgba(36,50,67,0.6)'},
+             title:{display:true,text:'°C',color:'#5b6a7c',font:{size:11}} }
+      }
+    }
+  });
+
+  // ── 7. CICLO DE TIEMPO ──
+  // Agrupar por inyectora, últimos 15 registros de cada una intercalados en timeline
+  const allCiclo = registros
+    .filter(r => r['Ciclo (seg)'] && !isNaN(parseFloat(r['Ciclo (seg)'])))
+    .sort((a,b)=>new Date(a['Timestamp']||0)-new Date(b['Timestamp']||0));
+
+  const cicloDatasets = INYECTORAS.filter(id=>allCiclo.some(r=>r['Inyectora']===id)).map(id=>{
+    const arr = allCiclo.filter(r=>r['Inyectora']===id).slice(-12);
+    return {
+      label: id,
+      data: arr.map(r=>({
+        x: new Date(r['Timestamp']||0).toLocaleTimeString('es-AR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
+        y: parseFloat(r['Ciclo (seg)'])
+      })),
+      borderColor: INY_COLORS[id]||'#888',
+      backgroundColor:'transparent',
+      borderWidth:2, pointRadius:4, tension:0.3,
+    };
+  });
+
+  // Para chart de ciclo usar labels comunes: todos los timestamps ordenados
+  const cicloLabels = [...new Set(
+    allCiclo.slice(-40).map(r=>new Date(r['Timestamp']||0).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}))
+  )];
+
+  chartCiclo = destroyChart(chartCiclo);
+  chartCiclo = new Chart(document.getElementById('chart-ciclo'), {
+    type: 'line',
+    data: {
+      labels: cicloLabels,
+      datasets: INYECTORAS.filter(id=>allCiclo.some(r=>r['Inyectora']===id)).map(id=>{
+        const arr = allCiclo.filter(r=>r['Inyectora']===id);
+        return {
+          label: id,
+          data: cicloLabels.map(lbl => {
+            const match = arr.find(r=>new Date(r['Timestamp']||0).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})===lbl);
+            return match ? parseFloat(match['Ciclo (seg)']) : null;
+          }),
+          borderColor: INY_COLORS[id]||'#888',
+          backgroundColor:'transparent',
+          borderWidth:2, pointRadius:3, tension:0.3, spanGaps:false,
+        };
+      })
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:true, labels:{color:'#98a4b3',font:{size:11},boxWidth:12,padding:12}} },
+      scales:{
+        x:{ticks:{color:'#98a4b3',font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:10}, grid:{color:'rgba(36,50,67,0.6)'}},
+        y:{ticks:{color:'#98a4b3',font:{size:11}}, grid:{color:'rgba(36,50,67,0.6)'},
+           title:{display:true,text:'seg',color:'#5b6a7c',font:{size:11}}}
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+cargarDatos();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
+  onload="if(datosGlobales.registros.length>0) renderCharts()"></script>
+</body>
+</html>
